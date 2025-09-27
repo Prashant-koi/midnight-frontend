@@ -25,3 +25,26 @@ export interface UserProfile {
   reputationScore: number
   endorsements: Endorsement[]
 }
+
+export interface Job {
+  id: string
+  title: string
+  company: string
+  location: string
+  type: 'Full-time' | 'Part-time' | 'Contract' | 'Remote'
+  salary: {
+    min: number
+    max: number
+    currency: string
+    period: 'hour' | 'year'
+  }
+  description: string
+  requirements: string[]
+  skillsRequired: string[]
+  postedBy: string
+  postedAt: string
+  applicants: number
+  status: 'open' | 'closed'
+  tags: string[]
+  experienceLevel: 'Entry' | 'Mid' | 'Senior' | 'Lead'
+}

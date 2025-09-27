@@ -9,6 +9,8 @@ import Home from './pages/Home'
 import Profile from './pages/Profile'
 import Skills from './pages/Skills'
 import Reputation from './pages/Reputation'
+import Jobs from './pages/Jobs'
+import JobDetails from './pages/JobDetails'
 
 // Setup queryClient
 const queryClient = new QueryClient()
@@ -32,6 +34,8 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/skills" element={<Skills />} />
               <Route path="/reputation" element={<Reputation />} />
+              <Route path="/jobs" element={<Jobs />} />
+              <Route path="/jobs/:jobId" element={<JobDetails />} />
             </Routes>
           </Layout>
         </Router>
