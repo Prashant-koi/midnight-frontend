@@ -31,7 +31,16 @@ const Home = () => {
     },
   ]
 
+  // Check if user is connected (either wallet or demo mode)
   const isUserConnected = isDemoMode || isConnected
+
+  const handleDemoMode = () => {
+    enableDemoMode()
+    // Force a small delay to ensure state updates properly
+    setTimeout(() => {
+      window.location.reload()
+    }, 100)
+  }
 
   if (isUserConnected) {
     return (
@@ -42,6 +51,13 @@ const Home = () => {
         <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
           Your professional skills verification platform. Manage your skills, build your reputation, and grow your career.
         </p>
+        {isDemoMode && (
+          <div className="bg-blue-900 border border-blue-600 rounded-lg p-4 mb-8 max-w-2xl mx-auto">
+            <p className="text-blue-200 text-sm">
+              🧪 You're in demo mode! Explore all features with sample data. You can exit demo mode anytime from the navbar.
+            </p>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
           {features.map((feature, index) => (
             <div key={index} className="card text-center">
@@ -81,7 +97,7 @@ const Home = () => {
             Connect Wallet to Get Started
           </button>
           <button
-            onClick={enableDemoMode}
+            onClick={handleDemoMode}
             className="btn-secondary text-lg px-8 py-4 flex items-center justify-center space-x-2"
           >
             <TestTube className="w-5 h-5" />
