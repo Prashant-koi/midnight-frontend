@@ -2,6 +2,7 @@ import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { Shield, Users, Award, TrendingUp, TestTube } from 'lucide-react'
 import { useDemoMode } from '../hooks/useDemoMode'
+import SuggestedJobs from '../components/SuggestedJobs'
 
 const Home = () => {
   const { isConnected } = useAccount()
@@ -44,21 +45,26 @@ const Home = () => {
 
   if (isUserConnected) {
     return (
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-white mb-6">
-          Welcome to Midnight Skills
-        </h1>
-        <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-          Your professional skills verification platform. Manage your skills, build your reputation, and grow your career.
-        </p>
-        {isDemoMode && (
-          <div className="bg-blue-900 border border-blue-600 rounded-lg p-4 mb-8 max-w-2xl mx-auto">
-            <p className="text-blue-200 text-sm">
-              🧪 You're in demo mode! Explore all features with sample data. You can exit demo mode anytime from the navbar.
-            </p>
-          </div>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
+      <div>
+        {/* Hero Section */}
+        <div className="text-center mb-16">
+          <h1 className="text-4xl font-bold text-white mb-6">
+            Welcome to Midnight Skills
+          </h1>
+          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+            Your professional skills verification platform. Manage your skills, build your reputation, and grow your career.
+          </p>
+          {isDemoMode && (
+            <div className="bg-blue-900 border border-blue-600 rounded-lg p-4 mb-8 max-w-2xl mx-auto">
+              <p className="text-blue-200 text-sm">
+                🧪 You're in demo mode! Explore all features with sample data. You can exit demo mode anytime from the navbar.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
           {features.map((feature, index) => (
             <div key={index} className="card text-center">
               <div className="flex justify-center mb-4">
@@ -72,6 +78,15 @@ const Home = () => {
               </p>
             </div>
           ))}
+        </div>
+
+        {/* Suggested Jobs Section */}
+        <div className="mt-16">
+          <SuggestedJobs 
+            maxJobs={6} 
+            showTitle={true}
+            className="max-w-6xl mx-auto"
+          />
         </div>
       </div>
     )
