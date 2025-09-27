@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { User, LogOut, Wallet, TestTube, Award, Briefcase } from 'lucide-react'
+import { User, LogOut, Wallet, TestTube, Award, Briefcase, FolderOpen } from 'lucide-react'
 import { useAccount, useDisconnect } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useDemoMode } from '../../hooks/useDemoMode'
@@ -15,6 +15,7 @@ const Header = () => {
     { name: 'Profile', href: '/profile', icon: User },
     { name: 'Skills', href: '/skills' },
     { name: 'Reputation', href: '/reputation', icon: Award },
+    { name: 'Current Jobs', href: '/currentjobs', icon: FolderOpen },
   ]
 
   const formatAddress = (addr: string) => {

@@ -11,6 +11,7 @@ import Skills from './pages/Skills'
 import Reputation from './pages/Reputation'
 import Jobs from './pages/Jobs'
 import JobDetails from './pages/JobDetails'
+import CurrentJobs from './pages/CurrentJobs'
 
 // Setup queryClient
 const queryClient = new QueryClient()
@@ -36,6 +37,7 @@ function App() {
               <Route path="/reputation" element={<Reputation />} />
               <Route path="/jobs" element={<Jobs />} />
               <Route path="/jobs/:jobId" element={<JobDetails />} />
+              <Route path="/currentjobs" element={<CurrentJobs />} />
             </Routes>
           </Layout>
         </Router>

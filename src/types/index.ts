@@ -36,7 +36,7 @@ export interface Job {
     min: number
     max: number
     currency: string
-    period: 'hour' | 'year'
+    period: 'hour' | 'year' | 'project'
   }
   description: string
   requirements: string[]
