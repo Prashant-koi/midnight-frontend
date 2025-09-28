@@ -1,13 +1,9 @@
-import { useAccount } from 'wagmi'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { Shield, Users, Award, TrendingUp, TestTube } from 'lucide-react'
-import { useDemoMode } from '../hooks/useDemoMode'
+import { Shield, Users, Award, TrendingUp } from 'lucide-react'
+import { useMidnightWallet } from '../hooks/useMidnightWallet'
 import SuggestedJobs from '../components/SuggestedJobs'
 
 const Home = () => {
-  const { isConnected } = useAccount()
-  const { open } = useWeb3Modal()
-  const { isDemoMode, enableDemoMode } = useDemoMode()
+  const { isConnected } = useMidnightWallet()
 
   const features = [
     {
@@ -32,16 +28,7 @@ const Home = () => {
     },
   ]
 
-  // Check if user is connected (either wallet or demo mode)
-  const isUserConnected = isDemoMode || isConnected
-
-  const handleDemoMode = () => {
-    enableDemoMode()
-    // Force a small delay to ensure state updates properly
-    setTimeout(() => {
-      window.location.reload()
-    }, 100)
-  }
+  const isUserConnected = isConnected
 
   if (isUserConnected) {
     return (
@@ -54,13 +41,6 @@ const Home = () => {
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
             Your professional skills verification platform. Manage your skills, build your reputation, and grow your career.
           </p>
-          {isDemoMode && (
-            <div className="bg-blue-900 border border-blue-600 rounded-lg p-4 mb-8 max-w-2xl mx-auto">
-              <p className="text-blue-200 text-sm">
-                🧪 You're in demo mode! Explore all features with sample data. You can exit demo mode anytime from the navbar.
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Features Grid */}
@@ -82,11 +62,7 @@ const Home = () => {
 
         {/* Suggested Jobs Section */}
         <div className="mt-16">
-          <SuggestedJobs 
-            maxJobs={6} 
-            showTitle={true}
-            className="max-w-6xl mx-auto"
-          />
+          <SuggestedJobs />
         </div>
       </div>
     )
@@ -105,19 +81,9 @@ const Home = () => {
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-          <button
-            onClick={() => open()}
-            className="btn-primary text-lg px-8 py-4"
-          >
-            Connect Wallet to Get Started
-          </button>
-          <button
-            onClick={handleDemoMode}
-            className="btn-secondary text-lg px-8 py-4 flex items-center justify-center space-x-2"
-          >
-            <TestTube className="w-5 h-5" />
-            <span>Try Demo Mode</span>
-          </button>
+          <p className="text-gray-400 text-lg">
+            Connect your Midnight wallet to get started
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">

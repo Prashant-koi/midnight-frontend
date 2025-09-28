@@ -1,15 +1,10 @@
 import { Link, useLocation } from 'react-router-dom'
-import { User, LogOut, Wallet, TestTube, Award, Briefcase, FolderOpen } from 'lucide-react'
-import { useAccount, useDisconnect } from 'wagmi'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useDemoMode } from '../../hooks/useDemoMode'
+import { User, Wallet, Award, Briefcase, FolderOpen } from 'lucide-react'
+import { useMidnightWallet } from '../../hooks/useMidnightWallet'
 
 const Header = () => {
   const location = useLocation()
-  const { address, isConnected } = useAccount()
-  const { disconnect } = useDisconnect()
-  const { open } = useWeb3Modal()
-  const { isDemoMode, demoAddress, enableDemoMode, disableDemoMode } = useDemoMode()
+  const { account: midnightAddress, isConnected: isMidnightConnected, connecting: isMidnightConnecting, error: midnightError, connect: connectMidnight, disconnect: disconnectMidnight } = useMidnightWallet()
 
   const navigation = [
     { name: 'Profile', href: '/profile', icon: User },
@@ -19,26 +14,20 @@ const Header = () => {
   ]
 
   const formatAddress = (addr: string) => {
+    if (!addr) return ''
+    if (addr.length <= 10) return addr
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`
   }
 
-  const handleWalletAction = () => {
-    if (isDemoMode) {
-      disableDemoMode()
-    } else if (isConnected) {
-      disconnect()
+  const handleMidnightAction = () => {
+    if (isMidnightConnected) {
+      disconnectMidnight()
     } else {
-      open()
+      connectMidnight()
     }
   }
 
-  const handleDemoMode = () => {
-    enableDemoMode()
-  }
-
-  // Use demo address if in demo mode, otherwise use wallet address
-  const currentAddress = isDemoMode ? demoAddress : address
-  const isUserConnected = isDemoMode || isConnected
+  const isUserConnected = isMidnightConnected
 
   return (
     <header className="bg-gray-900 border-b border-gray-700 sticky top-0 z-50">
@@ -56,11 +45,10 @@ const Header = () => {
           <div className="flex items-center">
             <Link
               to="/jobs"
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                location.pathname === '/jobs'
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${location.pathname === '/jobs'
                   ? 'bg-white text-black'
                   : 'text-white hover:bg-gray-700'
-              }`}
+                }`}
             >
               <Briefcase className="w-4 h-4" />
               <span>Jobs</span>
@@ -78,11 +66,10 @@ const Header = () => {
                     <Link
                       key={item.name}
                       to={item.href}
-                      className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        isActive
+                      className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive
                           ? 'bg-white text-black'
                           : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                      }`}
+                        }`}
                     >
                       {item.icon && <item.icon className="w-4 h-4" />}
                       <span>{item.name}</span>
@@ -92,48 +79,34 @@ const Header = () => {
               </nav>
             )}
 
-            {/* Wallet Address Display */}
-            {isUserConnected && currentAddress && (
-              <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-300">
-                {isDemoMode && <TestTube className="w-4 h-4 text-blue-400" />}
+            {/* Midnight Wallet Address Display */}
+            {isMidnightConnected && midnightAddress && (
+              <div className="hidden sm:flex items-center space-x-2 text-sm text-purple-300">
                 <Wallet className="w-4 h-4" />
-                <span>{formatAddress(currentAddress)}</span>
-                {isDemoMode && <span className="text-blue-400 text-xs">(Demo)</span>}
+                <span>{formatAddress(midnightAddress)}</span>
+                <span className="text-purple-400 text-xs">(Midnight)</span>
               </div>
             )}
-            
-            {/* Demo Mode Button (for non-connected users) */}
-            {!isUserConnected && (
+
+            {/* Midnight Connect/Disconnect */}
+            <div className="flex flex-col items-end">
               <button
-                onClick={handleDemoMode}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors bg-gray-700 text-white hover:bg-gray-600"
+                onClick={handleMidnightAction}
+                disabled={isMidnightConnecting}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${isMidnightConnected
+                    ? 'bg-gray-700 text-white hover:bg-gray-600'
+                    : 'bg-white text-black hover:bg-gray-200'
+                  } ${isMidnightConnecting ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
-                <TestTube className="w-4 h-4" />
-                <span>Demo Mode</span>
+                <Wallet className="w-4 h-4" />
+                <span>{isMidnightConnecting ? 'Connecting…' : (isMidnightConnected ? 'Disconnect Midnight' : 'Connect Midnight')}</span>
               </button>
-            )}
-            
-            {/* Wallet Connect/Disconnect Button */}
-            <button
-              onClick={handleWalletAction}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                isUserConnected
-                  ? 'bg-gray-700 text-white hover:bg-gray-600'
-                  : 'bg-white text-black hover:bg-gray-200'
-              }`}
-            >
-              {isUserConnected ? (
-                <>
-                  <LogOut className="w-4 h-4" />
-                  <span>{isDemoMode ? 'Exit Demo' : 'Disconnect'}</span>
-                </>
-              ) : (
-                <>
-                  <Wallet className="w-4 h-4" />
-                  <span>Connect Wallet</span>
-                </>
+              {midnightError && (
+                <span className="text-xs text-red-400 mt-1 max-w-[16rem] text-right">
+                  {midnightError}
+                </span>
               )}
-            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -144,11 +117,10 @@ const Header = () => {
           {/* Jobs Link for Mobile - Always visible */}
           <Link
             to="/jobs"
-            className={`flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium ${
-              location.pathname === '/jobs'
+            className={`flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium ${location.pathname === '/jobs'
                 ? 'bg-white text-black'
                 : 'text-gray-300 hover:text-white hover:bg-gray-700'
-            }`}
+              }`}
           >
             <Briefcase className="w-5 h-5" />
             <span>Jobs</span>
@@ -163,11 +135,10 @@ const Header = () => {
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium ${
-                      isActive
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium ${isActive
                         ? 'bg-white text-black'
                         : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                    }`}
+                      }`}
                   >
                     {item.icon && <item.icon className="w-5 h-5" />}
                     <span>{item.name}</span>
