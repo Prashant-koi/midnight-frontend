@@ -1,48 +1,35 @@
 import { useState, useEffect } from 'react'
-import { useAccount } from 'wagmi'
-import { Plus, Upload, ExternalLink, CheckCircle, Clock, Trash2 } from 'lucide-react'
+import { Plus, Star, CheckCircle, Clock, Award, TrendingUp } from 'lucide-react'
 import { apiService } from '../services/api'
 import type { Skill } from '../types'
-import { useDemoMode } from '../hooks/useDemoMode'
-import { mockApiResponses, mockSkills } from '../data/mockData'
+import { useMidnightWallet } from '../hooks/useMidnightWallet'
+import LoadingSpinner from '../components/ui/LoadingSpinner'
+import EmptyState from '../components/ui/EmptyState'
+import Modal from '../components/ui/Modal'
 
 const Skills = () => {
-  const { address, isConnected } = useAccount()
-  const { isDemoMode, demoAddress } = useDemoMode()
+  const { account, isConnected } = useMidnightWallet()
   const [skills, setSkills] = useState<Skill[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    proofUrl: '',
-    proofFile: null as File | null
-  })
+  const [newSkill, setNewSkill] = useState({ name: '', description: '' })
   const [submitting, setSubmitting] = useState(false)
 
-  const currentAddress = isDemoMode ? demoAddress : address
-  const isUserConnected = isDemoMode || isConnected
+  const currentAddress = account
+  const isUserConnected = isConnected
 
   useEffect(() => {
     if (isUserConnected && currentAddress) {
       loadSkills()
     }
-  }, [isUserConnected, currentAddress, isDemoMode])
+  }, [isUserConnected, currentAddress])
 
   const loadSkills = async () => {
     if (!currentAddress) return
-    
     try {
       setLoading(true)
-      if (isDemoMode) {
-        // Use mock data in demo mode
-        const skillsData = await mockApiResponses.getSkills()
-        setSkills(skillsData)
-      } else {
-        // For now, just use empty array for real wallet mode
-        // You'll replace this with: const skillsData = await apiService.getSkills(currentAddress)
-        setSkills([])
-      }
+      const skillsData = await apiService.getSkills(currentAddress)
+      setSkills(skillsData)
     } catch (err) {
       console.error('Failed to load skills:', err)
       setSkills([])
@@ -51,38 +38,14 @@ const Skills = () => {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!currentAddress || !formData.name.trim() || !formData.description.trim()) return
-
+  const handleAddSkill = async () => {
+    if (!currentAddress || !newSkill.name.trim()) return
     try {
       setSubmitting(true)
-      
-      if (isDemoMode) {
-        // Simulate adding skill in demo mode
-        const newSkill = await mockApiResponses.addSkill({
-          name: formData.name.trim(),
-          description: formData.description.trim(),
-          proofUrl: formData.proofUrl.trim() || undefined,
-          proofFile: formData.proofFile || undefined
-        })
-        setSkills(prev => [newSkill, ...prev])
-      } else {
-        // For real wallet mode, just add to local state for now
-        // You'll replace this with: const newSkill = await apiService.addSkill(currentAddress, {...})
-        const newSkill: Skill = {
-          id: Date.now().toString(),
-          name: formData.name.trim(),
-          description: formData.description.trim(),
-          proofUrl: formData.proofUrl.trim() || undefined,
-          weight: 0, // Will be determined by your backend algorithm
-          verified: false, // Will be determined by your backend algorithm
-          createdAt: new Date().toISOString()
-        }
-        setSkills(prev => [newSkill, ...prev])
-      }
-      
-      setFormData({ name: '', description: '', proofUrl: '', proofFile: null })
+      // Real API call when backend is ready:
+      // await apiService.addSkill(currentAddress, newSkill)
+      alert('Skill addition will be available when connected to backend.')
+      setNewSkill({ name: '', description: '' })
       setShowAddForm(false)
     } catch (err) {
       console.error('Failed to add skill:', err)
@@ -92,46 +55,44 @@ const Skills = () => {
     }
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setFormData(prev => ({ ...prev, proofFile: file }))
-    }
+  const getStatusIcon = (verified: boolean) => {
+    return verified ? (
+      <CheckCircle className="w-4 h-4 text-green-400" />
+    ) : (
+      <Clock className="w-4 h-4 text-yellow-400" />
+    )
   }
 
-  const handleDeleteSkill = async (skillId: string) => {
-    if (!currentAddress || !confirm('Are you sure you want to delete this skill?')) return
-
-    try {
-      if (isDemoMode) {
-        // Simulate deletion in demo mode
-        await mockApiResponses.deleteSkill()
-      } else {
-        // For real wallet mode, just remove from local state for now
-        // You'll replace this with: await apiService.deleteSkill(currentAddress, skillId)
-      }
-      setSkills(prev => prev.filter(skill => skill.id !== skillId))
-    } catch (err) {
-      console.error('Failed to delete skill:', err)
-      alert('Failed to delete skill. Please try again.')
-    }
+  const getStatusText = (verified: boolean) => {
+    return verified ? 'Verified' : 'Pending Verification'
   }
+
+  const getStatusColor = (verified: boolean) => {
+    return verified
+      ? 'bg-green-100 text-green-800'
+      : 'bg-yellow-100 text-yellow-800'
+  }
+
+  const verifiedCount = skills.filter(s => s.verified).length
+  const totalWeight = skills.reduce((sum, skill) => sum + skill.weight, 0)
+  const avgWeight = skills.length > 0 ? (totalWeight / skills.length).toFixed(1) : '0'
 
   if (!isUserConnected) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
-        <p className="text-gray-300">Please connect your wallet to manage your skills.</p>
-      </div>
+      <EmptyState
+        icon={Star}
+        title="Connect to Manage Skills"
+        description="Please connect your Midnight wallet to view and manage your professional skills."
+      />
     )
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">My Skills</h1>
-          <p className="text-gray-300">Manage your professional skills and verification proofs.</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Professional Skills</h1>
+          <p className="text-gray-300">Manage and verify your professional skills to build reputation.</p>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
@@ -142,184 +103,180 @@ const Skills = () => {
         </button>
       </div>
 
-      {/* Add Skill Form */}
-      {showAddForm && (
-        <div className="card mb-8">
-          <h2 className="text-xl font-semibold text-white mb-4">Add New Skill</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                Skill Name *
-              </label>
-              <input
-                type="text"
-                required
-                className="input-field"
-                placeholder="e.g., React Development, Data Analysis, UI/UX Design"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              />
-            </div>
+      {/* Skills Overview Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="card text-center">
+          <Star className="w-8 h-8 text-white mx-auto mb-2" />
+          <div className="text-2xl font-bold text-white">{skills.length}</div>
+          <p className="text-gray-300 text-sm">Total Skills</p>
+        </div>
+        <div className="card text-center">
+          <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
+          <div className="text-2xl font-bold text-white">{verifiedCount}</div>
+          <p className="text-gray-300 text-sm">Verified Skills</p>
+        </div>
+        <div className="card text-center">
+          <TrendingUp className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+          <div className="text-2xl font-bold text-white">{avgWeight}</div>
+          <p className="text-gray-300 text-sm">Average Weight</p>
+        </div>
+      </div>
 
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                Description *
-              </label>
-              <textarea
-                required
-                rows={3}
-                className="input-field resize-none"
-                placeholder="Describe your expertise and experience with this skill..."
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                Proof URL (Optional)
-              </label>
-              <input
-                type="url"
-                className="input-field"
-                placeholder="https://github.com/username/project or portfolio link"
-                value={formData.proofUrl}
-                onChange={(e) => setFormData(prev => ({ ...prev, proofUrl: e.target.value }))}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">
-                Upload Proof File (Optional)
-              </label>
-              <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-gray-500 transition-colors">
-                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <div className="text-sm text-gray-300 mb-2">
-                  Drop a file here or click to browse
+      {loading ? (
+        <LoadingSpinner message="Loading your skills..." />
+      ) : skills.length === 0 ? (
+        <EmptyState
+          icon={Star}
+          title="No Skills Added Yet"
+          description="Start building your professional profile by adding your skills and expertise."
+          action={{
+            label: 'Add Your First Skill',
+            onClick: () => setShowAddForm(true)
+          }}
+        />
+      ) : (
+        <div className="space-y-6">
+          {/* Skills List */}
+          <div className="card">
+            <h2 className="text-xl font-semibold text-white mb-6">Your Skills</h2>
+            <div className="space-y-4">
+              {skills.map((skill) => (
+                <div key={skill.id} className="flex items-start justify-between p-4 bg-gray-800 rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h3 className="text-lg font-medium text-white">{skill.name}</h3>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getStatusColor(skill.verified)}`}>
+                        {getStatusIcon(skill.verified)}
+                        <span>{getStatusText(skill.verified)}</span>
+                      </span>
+                    </div>
+                    <p className="text-gray-300 text-sm mb-3">{skill.description}</p>
+                    <div className="flex items-center space-x-4 text-sm">
+                      <div className="flex items-center space-x-1">
+                        <Award className="w-4 h-4 text-gray-400" />
+                        <span className="text-gray-400">Weight: <span className="text-white font-medium">{skill.weight}</span></span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <span className="text-gray-400">Added: {new Date(skill.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2 ml-4">
+                    <button className="text-gray-400 hover:text-white transition-colors text-sm px-3 py-1 rounded border border-gray-600 hover:border-gray-500">
+                      Edit
+                    </button>
+                    {!skill.verified && (
+                      <button className="text-blue-400 hover:text-blue-300 transition-colors text-sm px-3 py-1 rounded border border-blue-600 hover:border-blue-500">
+                        Verify
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <input
-                  type="file"
-                  className="hidden"
-                  id="proof-file"
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif"
-                  onChange={handleFileChange}
-                />
-                <label
-                  htmlFor="proof-file"
-                  className="btn-secondary cursor-pointer inline-block"
-                >
-                  Choose File
-                </label>
-                {formData.proofFile && (
-                  <p className="text-sm text-white mt-2">
-                    Selected: {formData.proofFile.name}
-                  </p>
-                )}
-              </div>
-              <p className="text-xs text-gray-400 mt-2">
-                Supported formats: PDF, DOC, DOCX, JPG, PNG, GIF (Max 10MB)
-              </p>
+              ))}
             </div>
+          </div>
 
-            <div className="flex items-center space-x-4 pt-4">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? 'Adding...' : 'Add Skill'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAddForm(false)
-                  setFormData({ name: '', description: '', proofUrl: '', proofFile: null })
-                }}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
+          {/* Verification Tips */}
+          <div className="card">
+            <h2 className="text-xl font-semibold text-white mb-4">Skill Verification Tips</h2>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start space-x-3">
+                <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-white font-medium">Link Professional Profiles</p>
+                  <p className="text-gray-300">Connect your GitHub, LinkedIn, and portfolio to automatically verify skills.</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-white font-medium">Upload Certificates</p>
+                  <p className="text-gray-300">Add professional certifications and course completions as proof.</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-white font-medium">Complete Projects</p>
+                  <p className="text-gray-300">Successfully completing jobs builds skill verification and reputation.</p>
+                </div>
+              </div>
             </div>
-          </form>
+          </div>
         </div>
       )}
 
-      {/* Skills List */}
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-300">Loading your skills...</p>
-        </div>
-      ) : skills.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Plus className="w-8 h-8 text-gray-300" />
+      {/* Add Skill Modal */}
+      <Modal
+        isOpen={showAddForm}
+        onClose={() => setShowAddForm(false)}
+        title="Add New Skill"
+        maxWidth="md"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Skill Name *
+            </label>
+            <input
+              type="text"
+              required
+              className="input-field"
+              placeholder="e.g., React Development, Data Analysis, UI/UX Design"
+              value={newSkill.name}
+              onChange={(e) => setNewSkill(prev => ({ ...prev, name: e.target.value }))}
+            />
           </div>
-          <h3 className="text-xl font-semibold text-white mb-2">No Skills Added Yet</h3>
-          <p className="text-gray-300 mb-4">Start building your professional profile by adding your first skill.</p>
+
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Description
+            </label>
+            <textarea
+              rows={3}
+              className="input-field resize-none"
+              placeholder="Briefly describe your experience and proficiency with this skill..."
+              value={newSkill.description}
+              onChange={(e) => setNewSkill(prev => ({ ...prev, description: e.target.value }))}
+            />
+          </div>
+
+          <div className="bg-blue-900 border border-blue-600 rounded-lg p-4">
+            <p className="text-blue-200 text-sm">
+              <strong>💡 Skill Verification:</strong><br />
+              After adding a skill, you can verify it by linking professional profiles, uploading certificates, or completing relevant projects. Verified skills carry more weight in your reputation score.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end space-x-4 mt-6 pt-4 border-t border-gray-700">
           <button
-            onClick={() => setShowAddForm(true)}
-            className="btn-primary"
+            onClick={() => setShowAddForm(false)}
+            className="btn-secondary"
+            disabled={submitting}
           >
-            Add Your First Skill
+            Cancel
+          </button>
+          <button
+            onClick={handleAddSkill}
+            disabled={submitting || !newSkill.name.trim()}
+            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            {submitting ? (
+              <>
+                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                <span>Adding...</span>
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                <span>Add Skill</span>
+              </>
+            )}
           </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {skills.map((skill) => (
-            <div key={skill.id} className="card hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  {skill.verified ? (
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                  ) : (
-                    <Clock className="w-5 h-5 text-yellow-500" />
-                  )}
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    skill.verified 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {skill.verified ? 'Verified' : 'Pending'}
-                  </span>
-                </div>
-                <button
-                  onClick={() => handleDeleteSkill(skill.id)}
-                  className="text-red-500 hover:text-red-700 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-
-              <h3 className="text-lg font-semibold text-white mb-2">{skill.name}</h3>
-              <p className="text-sm text-gray-300 mb-4 line-clamp-3">{skill.description}</p>
-
-              <div className="flex items-center justify-between text-sm">
-                <div className="text-gray-400">
-                  Weight: <span className="font-medium text-white">{skill.weight}</span>
-                </div>
-                <div className="text-gray-400">
-                  Added: {new Date(skill.createdAt).toLocaleDateString()}
-                </div>
-              </div>
-
-              {skill.proofUrl && (
-                <div className="mt-4 pt-4 border-t border-gray-700">
-                  <a
-                    href={skill.proofUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-2 text-sm text-white hover:underline"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    <span>View Proof</span>
-                  </a>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      </Modal>
     </div>
   )
 }
