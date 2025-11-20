@@ -48,3 +48,34 @@ export interface Job {
   tags: string[]
   experienceLevel: 'Entry' | 'Mid' | 'Senior' | 'Lead'
 }
+
+export interface CurrentJob {
+  id: string
+  title: string
+  company: string
+  location: string
+  type: 'Full-time' | 'Part-time' | 'Contract' | 'Remote'
+  salary: {
+    min: number
+    max: number
+    currency: string
+    period: 'hour' | 'year' | 'project'
+  }
+  description: string
+  requirements: string[]
+  skillsRequired: string[]
+  postedBy: string
+  postedAt: string
+  applicants: number
+  tags: string[]
+  experienceLevel: 'Entry' | 'Mid' | 'Senior' | 'Lead'
+  applicationDate: string
+  status: 'applied' | 'interviewing' | 'accepted' | 'in-progress' | 'completed' | 'cancelled'
+  startDate?: string
+  deadline?: string
+  progress: number
+  clientFeedback?: string
+  lastUpdate: string
+  paymentStatus: 'pending' | 'partial' | 'completed'
+  totalEarned: number
+}

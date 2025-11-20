@@ -1,203 +1,53 @@
 import { useState, useEffect } from 'react'
-import { useAccount } from 'wagmi'
 import { Link } from 'react-router-dom'
-import { 
-  Briefcase, 
-  MapPin, 
-  DollarSign, 
-  Clock, 
-  Users, 
+import {
+  Briefcase,
+  MapPin,
+  DollarSign,
+  Clock,
   Calendar,
   CheckCircle,
   AlertCircle,
   Play,
-  Pause,
   FileText,
   MessageCircle,
   ExternalLink,
-  Upload,
-  Github,
-  X
+  Upload
 } from 'lucide-react'
+import LoadingSpinner from '../components/ui/LoadingSpinner'
+import EmptyState from '../components/ui/EmptyState'
+import Modal from '../components/ui/Modal'
+import JobStats from '../components/jobs/JobStats'
+import SubmissionForm, { type SubmissionData } from '../components/forms/SubmissionForm'
 import { useDemoMode } from '../hooks/useDemoMode'
 import { mockApiResponses } from '../data/mockData'
-import type { Job } from '../types'
-
-// Interface for current jobs with application-specific fields
-interface CurrentJob {
-  // Core job fields (from Job interface)
-  id: string
-  title: string
-  company: string
-  location: string
-  type: 'Full-time' | 'Part-time' | 'Contract' | 'Remote'
-  salary: {
-    min: number
-    max: number
-    currency: string
-    period: 'hour' | 'year' | 'project'
-  }
-  description: string
-  requirements: string[]
-  skillsRequired: string[]
-  postedBy: string
-  postedAt: string
-  applicants: number
-  tags: string[]
-  experienceLevel: 'Entry' | 'Mid' | 'Senior' | 'Lead'
-  
-  // Application-specific fields
-  applicationDate: string
-  status: 'applied' | 'interviewing' | 'accepted' | 'in-progress' | 'completed' | 'cancelled'
-  startDate?: string
-  deadline?: string
-  progress: number
-  clientFeedback?: string
-  lastUpdate: string
-  paymentStatus: 'pending' | 'partial' | 'completed'
-  totalEarned: number
-}
-
-interface SubmissionData {
-  repoUrl: string
-  description: string
-  notes: string
-}
+import type { CurrentJob } from '../types'
 
 const CurrentJobs = () => {
-  const { address, isConnected } = useAccount()
-  const { isDemoMode, demoAddress } = useDemoMode()
   const [currentJobs, setCurrentJobs] = useState<CurrentJob[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [showSubmitForm, setShowSubmitForm] = useState<string | null>(null)
-  const [submissionData, setSubmissionData] = useState<SubmissionData>({
-    repoUrl: '',
-    description: '',
-    notes: ''
-  })
   const [submitting, setSubmitting] = useState(false)
-
-  const currentAddress = isDemoMode ? demoAddress : address
-  const isUserConnected = isDemoMode || isConnected
-
-  // Mock current jobs data
-  const mockCurrentJobs: CurrentJob[] = [
-    {
-      id: '1',
-      title: 'Build E-commerce Website with React',
-      company: 'TechStartup Inc.',
-      location: 'Remote',
-      type: 'Contract',
-      salary: { min: 80, max: 120, currency: 'USD', period: 'hour' },
-      description: 'Building a modern e-commerce website with React, including product catalog and payment integration.',
-      requirements: ['React', 'TypeScript', 'Payment Integration'],
-      skillsRequired: ['React Development', 'TypeScript', 'JavaScript'],
-      postedBy: '0xabcdef1234567890abcdef1234567890abcdef12',
-      postedAt: '2024-02-20T10:00:00Z',
-      applicants: 12,
-      status: 'in-progress',
-      tags: ['React', 'E-commerce', 'Frontend'],
-      experienceLevel: 'Mid',
-      applicationDate: '2024-02-21T14:30:00Z',
-      startDate: '2024-02-25T09:00:00Z',
-      deadline: '2024-04-10T17:00:00Z',
-      progress: 65,
-      clientFeedback: 'Great progress so far! Really happy with the design and functionality.',
-      lastUpdate: '2024-03-01T16:45:00Z',
-      paymentStatus: 'partial',
-      totalEarned: 4800
-    },
-    {
-      id: '2',
-      title: 'Mobile App UI/UX Design',
-      company: 'FinTech Solutions',
-      location: 'Remote',
-      type: 'Contract',
-      salary: { min: 60, max: 90, currency: 'USD', period: 'hour' },
-      description: 'Designing a complete mobile app interface for a cryptocurrency trading platform.',
-      requirements: ['Figma', 'Mobile Design', 'User Research'],
-      skillsRequired: ['UI/UX Design', 'Figma', 'Mobile Design'],
-      postedBy: '0x9876543210987654321098765432109876543210',
-      postedAt: '2024-02-18T14:30:00Z',
-      applicants: 8,
-      status: 'completed',
-      tags: ['Design', 'Mobile', 'FinTech'],
-      experienceLevel: 'Mid',
-      applicationDate: '2024-02-19T10:15:00Z',
-      startDate: '2024-02-22T09:00:00Z',
-      deadline: '2024-03-15T17:00:00Z',
-      progress: 100,
-      clientFeedback: 'Excellent work! The designs exceeded our expectations.',
-      lastUpdate: '2024-03-14T18:30:00Z',
-      paymentStatus: 'completed',
-      totalEarned: 3200
-    },
-    {
-      id: '3',
-      title: 'WordPress E-commerce Site',
-      company: 'Local Business',
-      location: 'Remote',
-      type: 'Contract',
-      salary: { min: 1500, max: 3000, currency: 'USD', period: 'project' },
-      description: 'Building a complete e-commerce website using WordPress and WooCommerce.',
-      requirements: ['WordPress', 'WooCommerce', 'SEO'],
-      skillsRequired: ['WordPress', 'WooCommerce', 'E-commerce'],
-      postedBy: '0x7777888899990000111122223333444455556666',
-      postedAt: '2024-02-16T16:00:00Z',
-      applicants: 25,
-      status: 'accepted',
-      tags: ['WordPress', 'E-commerce', 'WooCommerce'],
-      experienceLevel: 'Entry',
-      applicationDate: '2024-02-17T11:20:00Z',
-      startDate: '2024-03-05T09:00:00Z',
-      deadline: '2024-03-25T17:00:00Z',
-      progress: 0,
-      clientFeedback: 'Looking forward to working with you!',
-      lastUpdate: '2024-02-28T14:00:00Z',
-      paymentStatus: 'pending',
-      totalEarned: 0
-    },
-    {
-      id: '4',
-      title: 'Brand Identity & Logo Design',
-      company: 'New Startup',
-      location: 'Remote',
-      type: 'Contract',
-      salary: { min: 800, max: 2000, currency: 'USD', period: 'project' },
-      description: 'Creating complete brand identity for a new tech startup.',
-      requirements: ['Brand Design', 'Logo Design', 'Adobe Creative Suite'],
-      skillsRequired: ['Brand Design', 'Logo Design', 'Adobe Creative Suite'],
-      postedBy: '0x8888999900001111222233334444555566667777',
-      postedAt: '2024-02-24T09:30:00Z',
-      applicants: 31,
-      status: 'interviewing',
-      tags: ['Branding', 'Logo', 'Startup'],
-      experienceLevel: 'Mid',
-      applicationDate: '2024-02-25T15:45:00Z',
-      lastUpdate: '2024-02-27T10:30:00Z',
-      paymentStatus: 'pending',
-      totalEarned: 0,
-      progress: 0
-    }
-  ]
+  const { isDemoMode } = useDemoMode()
+  const isUserConnected = isDemoMode
 
   useEffect(() => {
-    if (isUserConnected && currentAddress) {
+    if (isUserConnected) {
       loadCurrentJobs()
     }
-  }, [isUserConnected, currentAddress, isDemoMode])
+  }, [isUserConnected])
 
   const loadCurrentJobs = async () => {
     try {
       setLoading(true)
+      
       if (isDemoMode) {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        setCurrentJobs(mockCurrentJobs)
+        // Load mock data in demo mode
+        const jobs = await mockApiResponses.getCurrentJobs()
+        setCurrentJobs(jobs)
       } else {
-        // For real wallet mode, use empty data for now
-        // You'll replace this with: const jobsData = await apiService.getCurrentJobs(currentAddress)
+        // TODO: Load real data from API/blockchain when wallet is connected
         setCurrentJobs([])
       }
     } catch (err) {
@@ -214,7 +64,7 @@ const CurrentJobs = () => {
   })
 
   const formatSalary = (job: CurrentJob) => {
-    const { min, max, currency, period } = job.salary
+    const { min, max, period } = job.salary
     if (period === 'hour') {
       return `$${min}-${max}/hr`
     }
@@ -257,50 +107,10 @@ const CurrentJobs = () => {
     }
   }
 
-  const handleSubmitJob = async (jobId: string) => {
-    if (!submissionData.repoUrl.trim()) {
-      alert('Please provide a GitHub repository URL.')
-      return
-    }
-
-    // Basic URL validation
-    const githubUrlPattern = /^https:\/\/github\.com\/[\w\-\.]+\/[\w\-\.]+\/?$/
-    if (!githubUrlPattern.test(submissionData.repoUrl.trim())) {
-      alert('Please provide a valid GitHub repository URL (e.g., https://github.com/username/repository)')
-      return
-    }
-
+  const handleSubmitJob = async (_data: SubmissionData) => {
     try {
       setSubmitting(true)
-      
-      if (isDemoMode) {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        
-        // Update job status to completed in local state
-        setCurrentJobs(prevJobs => 
-          prevJobs.map(job => 
-            job.id === jobId 
-              ? { 
-                  ...job, 
-                  status: 'completed' as const,
-                  progress: 100,
-                  lastUpdate: new Date().toISOString(),
-                  clientFeedback: 'Job submission received! We\'ll review your work and provide feedback soon.'
-                }
-              : job
-          )
-        )
-        
-        alert('Job submitted successfully! The client will review your work.')
-      } else {
-        // Real API call would go here
-        // await apiService.submitJob(jobId, submissionData)
-        alert('Job submission functionality will be available with wallet integration.')
-      }
-
-      // Reset form and close modal
-      setSubmissionData({ repoUrl: '', description: '', notes: '' })
+      alert('Job submission functionality will be available with wallet integration.')
       setShowSubmitForm(null)
     } catch (err) {
       console.error('Failed to submit job:', err)
@@ -310,27 +120,17 @@ const CurrentJobs = () => {
     }
   }
 
-  const handleSubmitFormOpen = (jobId: string) => {
-    setShowSubmitForm(jobId)
-    setSubmissionData({ repoUrl: '', description: '', notes: '' })
-  }
-
-  const handleSubmitFormClose = () => {
-    setShowSubmitForm(null)
-    setSubmissionData({ repoUrl: '', description: '', notes: '' })
-  }
-
   const totalEarnings = currentJobs.reduce((sum, job) => sum + job.totalEarned, 0)
   const activeJobs = currentJobs.filter(job => job.status === 'in-progress').length
   const completedJobs = currentJobs.filter(job => job.status === 'completed').length
 
   if (!isUserConnected) {
     return (
-      <div className="text-center py-12">
-        <Briefcase className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-white mb-2">Connect to View Current Jobs</h2>
-        <p className="text-gray-300">Please connect your wallet or try demo mode to see your current job projects.</p>
-      </div>
+      <EmptyState
+        icon={Briefcase}
+        title="Enable Demo Mode to View Current Jobs"
+        description="Add ?demo=true to the URL or connect your wallet to see your current job projects."
+      />
     )
   }
 
@@ -346,24 +146,11 @@ const CurrentJobs = () => {
         </Link>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="card text-center">
-          <Play className="w-8 h-8 text-white mx-auto mb-2" />
-          <div className="text-2xl font-bold text-white">{activeJobs}</div>
-          <p className="text-gray-300 text-sm">Active Projects</p>
-        </div>
-        <div className="card text-center">
-          <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
-          <div className="text-2xl font-bold text-white">{completedJobs}</div>
-          <p className="text-gray-300 text-sm">Completed</p>
-        </div>
-        <div className="card text-center">
-          <DollarSign className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-          <div className="text-2xl font-bold text-white">${totalEarnings.toLocaleString()}</div>
-          <p className="text-gray-300 text-sm">Total Earned</p>
-        </div>
-      </div>
+      <JobStats
+        activeJobs={activeJobs}
+        completedJobs={completedJobs}
+        totalEarnings={totalEarnings}
+      />
 
       {/* Status Filter */}
       <div className="card mb-8">
@@ -384,27 +171,20 @@ const CurrentJobs = () => {
         </div>
       </div>
 
-      {/* Jobs List */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-300">Loading your current jobs...</p>
-        </div>
+        <LoadingSpinner message="Loading your current jobs..." />
       ) : filteredJobs.length === 0 ? (
-        <div className="text-center py-12">
-          <Briefcase className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">
-            {selectedStatus === 'all' ? 'No Current Jobs' : `No ${selectedStatus.charAt(0).toUpperCase() + selectedStatus.slice(1)} Jobs`}
-          </h3>
-          <p className="text-gray-300 mb-6">
-            {selectedStatus === 'all' 
-              ? 'You haven\'t applied to any jobs yet.' 
-              : `No jobs with ${selectedStatus} status found.`}
-          </p>
-          <Link to="/jobs" className="btn-primary">
-            Browse Available Jobs
-          </Link>
-        </div>
+        <EmptyState
+          icon={Briefcase}
+          title={selectedStatus === 'all' ? 'No Current Jobs' : `No ${selectedStatus.charAt(0).toUpperCase() + selectedStatus.slice(1)} Jobs`}
+          description={selectedStatus === 'all'
+            ? 'You haven\'t applied to any jobs yet.'
+            : `No jobs with ${selectedStatus} status found.`}
+          action={{
+            label: 'Browse Available Jobs',
+            onClick: () => window.location.href = '/jobs'
+          }}
+        />
       ) : (
         <div className="space-y-6">
           {filteredJobs.map((job) => (
@@ -423,7 +203,7 @@ const CurrentJobs = () => {
                       </span>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-4 text-gray-400 text-sm mb-4">
                     <div className="flex items-center space-x-1">
                       <MapPin className="w-4 h-4" />
@@ -447,8 +227,8 @@ const CurrentJobs = () => {
                         <span className="text-white font-medium">{job.progress}%</span>
                       </div>
                       <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div 
-                          className="bg-white h-2 rounded-full transition-all duration-300" 
+                        <div
+                          className="bg-white h-2 rounded-full transition-all duration-300"
                           style={{ width: `${job.progress}%` }}
                         ></div>
                       </div>
@@ -503,30 +283,30 @@ const CurrentJobs = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex items-center justify-between pt-4 border-t border-gray-700">
                 <div className="text-xs text-gray-400">
                   Last updated: {new Date(job.lastUpdate).toLocaleDateString()}
                 </div>
-                
+
                 <div className="flex items-center space-x-3">
-                  <Link 
+                  <Link
                     to={`/jobs/${job.id}`}
                     className="flex items-center space-x-1 text-xs px-3 py-1.5 rounded-lg border border-gray-600 text-gray-300 hover:text-white hover:border-gray-500 transition-colors"
                   >
                     <ExternalLink className="w-3 h-3" />
                     <span>View Details</span>
                   </Link>
-                  
+
                   {job.status === 'in-progress' && (
                     <>
                       <button className="flex items-center space-x-1 text-xs px-3 py-1.5 rounded-lg border border-gray-600 text-gray-300 hover:text-white hover:border-gray-500 transition-colors">
                         <FileText className="w-3 h-3" />
                         <span>Update Progress</span>
                       </button>
-                      
-                      <button 
-                        onClick={() => handleSubmitFormOpen(job.id)}
+
+                      <button
+                        onClick={() => setShowSubmitForm(job.id)}
                         className="flex items-center space-x-1 text-xs px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors font-medium"
                       >
                         <Upload className="w-3 h-3" />
@@ -541,108 +321,19 @@ const CurrentJobs = () => {
         </div>
       )}
 
-      {/* Submit Job Modal */}
-      {showSubmitForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-2">
-                <Github className="w-6 h-6 text-white" />
-                <h2 className="text-xl font-semibold text-white">Submit Job Deliverable</h2>
-              </div>
-              <button
-                onClick={handleSubmitFormClose}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  GitHub Repository URL *
-                </label>
-                <input
-                  type="url"
-                  required
-                  className="input-field"
-                  placeholder="https://github.com/username/repository"
-                  value={submissionData.repoUrl}
-                  onChange={(e) => setSubmissionData(prev => ({ ...prev, repoUrl: e.target.value }))}
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  Please provide the GitHub repository containing your completed work
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Project Description
-                </label>
-                <textarea
-                  rows={3}
-                  className="input-field resize-none"
-                  placeholder="Briefly describe what you've delivered..."
-                  value={submissionData.description}
-                  onChange={(e) => setSubmissionData(prev => ({ ...prev, description: e.target.value }))}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Additional Notes
-                </label>
-                <textarea
-                  rows={2}
-                  className="input-field resize-none"
-                  placeholder="Any additional notes for the client..."
-                  value={submissionData.notes}
-                  onChange={(e) => setSubmissionData(prev => ({ ...prev, notes: e.target.value }))}
-                />
-              </div>
-
-              <div className="bg-blue-900 border border-blue-600 rounded-lg p-4">
-                <p className="text-blue-200 text-sm">
-                  <strong>📋 Submission Guidelines:</strong><br />
-                  • Ensure your repository is public or accessible to the client<br />
-                  • Include a comprehensive README with setup instructions<br />
-                  • Make sure all requirements from the job description are met<br />
-                  • Your submission will be reviewed within 2-3 business days
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end space-x-4 mt-6 pt-4 border-t border-gray-700">
-              <button
-                type="button"
-                onClick={handleSubmitFormClose}
-                className="btn-secondary"
-                disabled={submitting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleSubmitJob(showSubmitForm)}
-                disabled={submitting || !submissionData.repoUrl.trim()}
-                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-              >
-                {submitting ? (
-                  <>
-                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                    <span>Submitting...</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4" />
-                    <span>Submit Job</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={!!showSubmitForm}
+        onClose={() => setShowSubmitForm(null)}
+        title="Submit Job Deliverable"
+        maxWidth="2xl"
+        maxHeight
+      >
+        <SubmissionForm
+          onSubmit={handleSubmitJob}
+          onCancel={() => setShowSubmitForm(null)}
+          submitting={submitting}
+        />
+      </Modal>
     </div>
   )
 }
