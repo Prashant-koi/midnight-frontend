@@ -1,6 +1,6 @@
 import type { Skill, Endorsement, UserProfile } from '../types'
 
-const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:3001/api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'
 
 // Re-export types for convenience
 export type { Skill, Endorsement, UserProfile }
@@ -86,6 +86,31 @@ class ApiService {
   // Reputation endpoints
   async getReputationScore(address: string): Promise<{ score: number }> {
     return this.request<{ score: number }>(`/profile/${address}/reputation`)
+  }
+
+  // Resume upload endpoint
+  async uploadResume(candidateId: string, resumeFile: File, githubUsername?: string): Promise<any> {
+    const formData = new FormData()
+    formData.append('candidateId', candidateId)
+    formData.append('resumeFile', resumeFile)
+    if (githubUsername) {
+      formData.append('githubUsername', githubUsername)
+    }
+
+    // Make request directly to skills/verify endpoint
+    const url = `${API_BASE_URL}/skills/verify`
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      // Don't set Content-Type header - let browser set it with boundary for multipart/form-data
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Upload failed' }))
+      throw new Error(error.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
   }
 }
 

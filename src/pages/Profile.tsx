@@ -125,28 +125,71 @@ const Profile = () => {
       setUploadingResume(true)
       
       if (isDemoMode) {
-        // Simulate file upload
+        // Simulate file upload in demo mode
         await new Promise(resolve => setTimeout(resolve, 2000))
         
-        // Update profile links with mock resume URL
         const mockResumeUrl = `https://storage.example.com/resumes/${resumeFile.name}`
         setProfileLinks(prev => ({ ...prev, resume: mockResumeUrl }))
         
-        alert('Resume uploaded successfully!')
+        alert('Resume uploaded successfully! (Demo Mode)')
       } else {
-        // Real file upload would go here
-        // const formData = new FormData()
-        // formData.append('resume', resumeFile)
-        // const response = await apiService.uploadResume(currentAddress, formData)
-        // setProfileLinks(prev => ({ ...prev, resume: response.url }))
-        alert('Resume upload will be available when connected to wallet.')
+        // Real file upload - call the middleware API at localhost:3001
+        console.log('📤 Uploading resume to middleware API...')
+        console.log('  - File:', resumeFile.name)
+        console.log('  - Size:', resumeFile.size, 'bytes')
+        console.log('  - Candidate ID:', currentAddress)
+        
+        // Extract GitHub username from profile links if available
+        const githubUsername = profileLinks.github 
+          ? profileLinks.github.split('/').pop() 
+          : undefined
+        
+        console.log('  - GitHub username:', githubUsername || 'none')
+        
+        // Call the middleware API
+        const result = await apiService.uploadResume(
+          currentAddress,
+          resumeFile,
+          githubUsername
+        )
+        
+        console.log('✅ Resume upload successful:', result)
+        
+        // Check if we got verified skills back
+        if (result.verification && result.verification.skills) {
+          const skillCount = result.verification.skills.length
+          const highConfidenceSkills = result.verification.skills.filter(
+            (s: any) => s.confidence >= 70
+          ).length
+          
+          alert(
+            `Resume uploaded and analyzed! 🎉\n\n` +
+            `Found ${skillCount} skills\n` +
+            `${highConfidenceSkills} with high confidence (≥70%)\n\n` +
+            `Check your Skills page to see the results!`
+          )
+          
+          // Optionally refresh the profile to show new skills
+          // await loadProfile()
+        } else {
+          alert('Resume uploaded successfully!')
+        }
+        
+        // Store the resume URL in profile links
+        const resumeUrl = `uploaded-${resumeFile.name}`
+        setProfileLinks(prev => ({ ...prev, resume: resumeUrl }))
       }
       
       setShowResumeUpload(false)
       setResumeFile(null)
     } catch (err) {
-      console.error('Failed to upload resume:', err)
-      alert('Failed to upload resume. Please try again.')
+      console.error('❌ Failed to upload resume:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      alert(
+        `Failed to upload resume:\n\n${errorMessage}\n\n` +
+        `Make sure the middleware API is running:\n` +
+        `cd middleware-api && npm run dev`
+      )
     } finally {
       setUploadingResume(false)
     }

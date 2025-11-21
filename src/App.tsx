@@ -16,12 +16,23 @@ import CurrentJobs from './pages/CurrentJobs'
 // Setup queryClient
 const queryClient = new QueryClient()
 
-// Create modal
+// Create modal with social login options
 createWeb3Modal({
   wagmiConfig: config,
   projectId,
   enableAnalytics: true,
-  enableOnramp: true
+  enableOnramp: true,
+  // Enable social logins - requires Auth feature from WalletConnect Cloud
+  featuredWalletIds: [
+    // Add popular wallet IDs here if needed
+  ],
+  // Allow all wallets
+  allWallets: 'SHOW',
+  // Enable email and social logins (requires WalletConnect Cloud Auth)
+  // Note: To use social logins, you need to:
+  // 1. Get a valid WalletConnect Project ID from https://cloud.walletconnect.com
+  // 2. Enable Auth in your project settings
+  // 3. Set VITE_WALLET_CONNECT_PROJECT_ID in your .env file
 })
 
 function App() {
